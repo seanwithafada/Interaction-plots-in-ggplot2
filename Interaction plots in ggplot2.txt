@@ -1,0 +1,108 @@
+###################################################### Interaction Plots in ggplot2
+########################### Dataframe
+ID<-c()
+for (i in 1:264) {
+  ID[i]<-ifelse(i<10,paste0("ID-00",i),ifelse(i<100,paste0("ID-0",i),
+                   paste0("ID-",i)))
+}
+
+Factor<-rep(c("Low","High"),132)
+Group<-rep(c("Group 01","Group 02","Group 03"),by=88)
+Level<-c(rep(c("Level 01","Level 02","Level 03","Level 04"),each=66))
+
+set.seed(1345)
+T1<--c(-sample(1:2000,264,replace=F))
+T2<--c(-sample(10:2500,264,replace=F))
+T3<--c(-sample(50:3000,264,replace=F))
+T4<--c(-sample(0:1000,264,replace=F))
+T5<--c(-sample(0:3000,264,replace=F))
+
+df<-data.frame(ID,Factor,Group,Level,T1, T2, T3,T4,T5)
+View(df)
+
+library(tidyr)
+DF<-gather(df,Time, Measure,5:9)
+
+
+DF$Time[DF$Time=="T1"]<-"Time 01"
+DF$Time[DF$Time=="T2"]<-"Time 02"
+DF$Time[DF$Time=="T3"]<-"Time 03"
+DF$Time[DF$Time=="T4"]<-"Time 04"
+DF$Time[DF$Time=="T5"]<-"Time 05"
+
+########################### Set properties
+DF$Factor<-ordered(DF$Factor,levels=c("Low","High"))
+DF$Group<-as.factor(DF$Group)
+DF$Level<-as.factor(DF$Level)
+DF$Time<-as.factor(DF$Time)
+
+############################################## Two-way interaction
+########################### Summary statistics
+library(dplyr)
+(Stats2way<-DF %>% group_by(Time,Factor) %>% summarise("Mean" = round(mean(Measure),1), 
+                                          "95% CI (lower)"=round(t.test(Measure~1)$conf.int[1],1),
+                                             "95% CI (upper)"=round(t.test(Measure~1)$conf.int[2],1)))
+
+
+########################### Plot
+library(ggplot2)
+windows(20,10)
+(g1<- ggplot(Stats2way, aes(x=Time, y=Mean, group=Factor,color=Factor)) + theme_bw()+
+    geom_line(size=1.25,position=position_dodge(0.2))+
+    geom_point(size=2,position=position_dodge(0.2))+
+        geom_errorbar(aes(ymin=`95% CI (lower)`, ymax=`95% CI (upper)`), width=0.2, size=1.25,
+                 position=position_dodge(0.2)))
+
+windows(20,10)
+(g2<-g1+labs(x="", y = "95% Confidence Interval of Measurement (units)",color="Factor")+
+    coord_cartesian(ylim=c(400,1800))+scale_y_continuous(breaks=seq(400,1800,100))+
+    theme(text = element_text(size=15),legend.title = element_blank(),legend.position="bottom")+
+    scale_color_manual(values = c("#fa2727","#7def4c")))
+
+
+############################################## Three-way interaction
+########################### Summary statistics
+(Stats3way<-DF %>% group_by(Time,Factor,Group) %>% summarise("Mean" = round(mean(Measure),1), 
+                          "95% CI (lower)"=round(t.test(Measure~1)$conf.int[1],1),
+                          "95% CI (upper)"=round(t.test(Measure~1)$conf.int[2],1)))
+
+########################### Plot
+windows(20,10)
+(g3<- ggplot(Stats3way, aes(x=Time, y=Mean, group=Factor,color=Factor)) + theme_bw()+
+    geom_line(size=1.25,position=position_dodge(0.2))+
+    geom_point(size=2,position=position_dodge(0.2))+
+    geom_errorbar(aes(ymin=`95% CI (lower)`, ymax=`95% CI (upper)`), width=0.2, size=1.25,
+                  position=position_dodge(0.2))+
+    facet_grid(~Group))
+
+windows(20,10)
+(g4<-g3+labs(x="", y = "95% Confidence Interval of Measurement (units)",color="Factor")+
+    coord_cartesian(ylim=c(300,2000))+scale_y_continuous(breaks=seq(300,2000,100))+
+    theme(text = element_text(size=15),legend.title = element_blank(),legend.position="bottom")+
+    scale_color_manual(values = c("#fa2727","#7def4c")))+
+    theme(strip.background = element_rect(fill = "white"))
+
+
+############################################## Four-way interaction
+########################### Summary statistics
+(Stats4way<-DF %>% group_by(Time,Factor,Group,Level) %>% summarise("Mean" = round(mean(Measure),1),
+                             "95% CI (lower)"=round(t.test(Measure~1)$conf.int[1],1),
+                             "95% CI (upper)"=round(t.test(Measure~1)$conf.int[2],1)))
+
+########################### Plot
+windows(20,10)
+(g5<- ggplot(Stats4way, aes(x=Time, y=Mean, group=Factor,color=Factor)) + theme_bw()+
+    geom_line(size=1.25,position=position_dodge(0.2))+
+    geom_point(size=2,position=position_dodge(0.2))+
+    geom_errorbar(aes(ymin=`95% CI (lower)`, ymax=`95% CI (upper)`), width=0.2, size=1.25,
+                  position=position_dodge(0.2))+
+    facet_grid(Group~Level))
+
+windows(20,10)
+(g6<-g5+labs(x="", y = "95% Confidence Interval of Measurement (units)",color="Factor")+
+    coord_cartesian(ylim=c(200,2600))+scale_y_continuous(breaks=seq(200,2600,400))+
+    theme(text = element_text(size=15),legend.title = element_blank(),legend.position="bottom",
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          strip.background = element_rect(fill = "white"))+
+    scale_color_manual(values = c("#fa2727","#7def4c")))
+
